@@ -180,8 +180,7 @@ if uploaded_file is not None:
                         X_test,
                         y_test,
                         task,
-                        y_scaler
-                    )
+                        y_scaler)
                 )
 
             st.success(

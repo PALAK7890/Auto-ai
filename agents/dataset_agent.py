@@ -70,14 +70,14 @@ class DatasetAgent:
         if not pd.api.types.is_numeric_dtype(
             target_series
         ):
-            return "Classification"
+            return "classification"
 
         unique_values = target_series.nunique()
 
         if unique_values <= 20:
-            return "Classification"
+            return "classification"
 
-        return "Regression"
+        return "regression"
     def dataset_summary(self, df):
 
         return {
