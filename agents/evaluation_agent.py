@@ -17,7 +17,8 @@ class EvaluationAgent:
         model,
         X_test,
         y_test,
-        task
+        task,
+        y_scaler=None
     ):
 
         X_test = torch.tensor(
@@ -46,17 +47,21 @@ class EvaluationAgent:
                 "precision": precision_score(
                     y_test,
                     predictions,
-                    average="weighted"
+                    average="weighted",
+                    zero_division=0
                 ),
                 "recall": recall_score(
                     y_test,
                     predictions,
-                    average="weighted"
+                    average="weighted",
+                    zero_division=0,
+                    
                 ),
                 "f1": f1_score(
                     y_test,
                     predictions,
-                    average="weighted"
+                    average="weighted",
+                    zero_division=0
                 )
             }
 

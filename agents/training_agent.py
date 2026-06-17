@@ -10,7 +10,7 @@ class TrainingAgent:
         model,
         X_train,
         y_train,
-        task="classification",
+        task,
         epochs=50
     ):
 

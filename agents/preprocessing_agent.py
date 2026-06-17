@@ -3,36 +3,45 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 from pandas.api.types import is_numeric_dtype
 
+
 class PreprocessingAgent:
 
     def process(
         self,
         df,
         target,
-        analysis
+        analysis,
+        task
     ):
+
+        # ------------------------
+        # Separate Features/Target
+        # ------------------------
 
         X = df.drop(columns=[target])
         y = df[target]
 
-        # Remove constant columns
+        # ------------------------
+        # Remove Useless Columns
+        # ------------------------
+
         X = X.drop(
             columns=analysis["constant_columns"],
             errors="ignore"
         )
 
-        # Remove ID columns
         X = X.drop(
             columns=analysis["id_columns"],
             errors="ignore"
         )
 
-        # Handle missing values
+        # ------------------------
+        # Missing Values
+        # ------------------------
+
         for col in X.columns:
 
-            if is_numeric_dtype(
-                    X[col]
-            ):
+            if is_numeric_dtype(X[col]):
 
                 X[col] = X[col].fillna(
                     X[col].median()
@@ -44,12 +53,13 @@ class PreprocessingAgent:
                     X[col].mode()[0]
                 )
 
-        # Encode categoricals
+        # ------------------------
+        # Encode Categoricals
+        # ------------------------
+
         for col in X.columns:
 
-            if not is_numeric_dtype(
-                X[col]
-            ):
+            if not is_numeric_dtype(X[col]):
 
                 encoder = LabelEncoder()
 
@@ -57,22 +67,72 @@ class PreprocessingAgent:
                     X[col].astype(str)
                 )
 
-        # Encode target
-        if not is_numeric_dtype(y):
+        # ------------------------
+        # Target Processing
+        # ------------------------
 
-            y = (
-                LabelEncoder()
-                .fit_transform(y)
+        y_scaler = None
+
+        if task == "classification":
+
+            if not is_numeric_dtype(y):
+
+                y = (
+                    LabelEncoder()
+                    .fit_transform(y)
+                )
+
+        else:  # regression
+
+            y_scaler = StandardScaler()
+
+            y = y_scaler.fit_transform(
+                y.values.reshape(-1, 1)
+            ).flatten()
+
+        # ------------------------
+        # Feature Scaling
+        # ------------------------
+
+        X_scaler = StandardScaler()
+
+        X = X_scaler.fit_transform(X)
+
+        # ------------------------
+        # Train/Test Split
+        # ------------------------
+
+        if task == "classification":
+
+            X_train, X_test, y_train, y_test = (
+                train_test_split(
+                    X,
+                    y,
+                    test_size=0.2,
+                    random_state=42,
+                    stratify=y
+                )
             )
 
-        scaler = StandardScaler()
+        else:
 
-        X = scaler.fit_transform(X)
+            X_train, X_test, y_train, y_test = (
+                train_test_split(
+                    X,
+                    y,
+                    test_size=0.2,
+                    random_state=42
+                )
+            )
 
-        return train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-            stratify=y
+        # ------------------------
+        # Return Everything
+        # ------------------------
+
+        return (
+            X_train,
+            X_test,
+            y_train,
+            y_test,
+            y_scaler
         )
