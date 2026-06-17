@@ -2,21 +2,6 @@ import pandas as pd
 
 
 class DatasetAgent:
-    def detect_id_columns(self, df):
-
-        id_cols = []
-
-        for col in df.columns:
-
-            unique_ratio = df[col].nunique() / len(df)
-
-            if unique_ratio > 0.95 and "id" in col.lower():
-                id_cols.append(col)
-
-            elif unique_ratio > 0.99:
-                id_cols.append(col)
-
-        return id_cols
 
     def analyze(self, df):
 
@@ -25,7 +10,7 @@ class DatasetAgent:
         ).columns.tolist()
 
         categorical_cols = df.select_dtypes(
-            include=["object"]
+            include=["object", "category", "bool"]
         ).columns.tolist()
 
         missing_values = (
@@ -38,39 +23,71 @@ class DatasetAgent:
 
         for col in df.columns:
 
-            if df[col].nunique() == 1:
+            if df[col].nunique() <= 1:
                 constant_columns.append(col)
 
+        id_columns = self.detect_id_columns(df)
+
         return {
-            "rows": df.shape[0],
-            "columns": df.shape[1],
+            "rows": len(df),
+            "columns": len(df.columns),
+            "column_names": df.columns.tolist(),
             "numerical_cols": numerical_cols,
             "categorical_cols": categorical_cols,
             "missing_values": missing_values,
-            "constant_columns": constant_columns
+            "constant_columns": constant_columns,
+            "id_columns": id_columns
         }
 
-    def detect_target(self, df):
+    def detect_id_columns(self, df):
 
-        common_targets = [
-            "target",
-            "label",
-            "class",
-            "attrition",
-            "churn",
-            "saleprice"
+        id_cols = []
+
+        id_keywords = [
+            "id",
+            "number",
+            "userid",
+            "customerid",
+            "employeeid",
+            "transactionid",
+            "orderid"
         ]
 
         for col in df.columns:
 
-            if col.lower() in common_targets:
-                return col
+            col_lower = col.lower()
 
-        return df.columns[-1]
+            if any(
+                keyword in col_lower
+                for keyword in id_keywords
+            ):
+                id_cols.append(col)
+
+        return id_cols
 
     def detect_task(self, target_series):
 
-        if target_series.nunique() <= 10:
+        if not pd.api.types.is_numeric_dtype(
+            target_series
+        ):
+            return "classification"
+
+        unique_values = target_series.nunique()
+
+        if unique_values <= 20:
             return "classification"
 
         return "regression"
+    def dataset_summary(self, df):
+
+        return {
+                "rows": len(df),
+                "columns": len(df.columns),
+                "memory_mb":
+                    round(
+                        df.memory_usage(
+                            deep=True
+                        ).sum() / 1024**2,
+                        2
+                    )
+            }
